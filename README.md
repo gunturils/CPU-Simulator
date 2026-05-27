@@ -1,2 +1,2 @@
 # CPU-Simulator
-Repository for the creation of a virtual cpu simulator using a virtual machine environment on my laptop
+Repository hosting all of the necessary software to host the software program that models the behavior of a physical Central Processing Unit (CPU)
