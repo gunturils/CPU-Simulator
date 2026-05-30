@@ -19,5 +19,7 @@ int main() {
 	std::cout << "--- Registers after execution ---" << std::endl;
 	printReg(cpu);
 
+	std::cout << "test" << std::endl;
+
 	return 0;
 }
