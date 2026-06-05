@@ -1,19 +1,28 @@
 #include "../include/cpu.h"
 
 Instruction fetch(CPU& cpu) {
-	// reates the byte at the current pc location
-	unsigned char byte = cpu.mem.data[cpu.pc];
+	unsigned char op = cpu.mem.data[cpu.pc]; // first byte is the opcode
+	unsigned char dest = cpu.mem.data[cpu.pc + 1]; // second byte is the destination register
+	unsigned char src1 = cpu.mem.data[cpu.pc + 2]; // third byte is the first source register
+	unsigned char src2 = cpu.mem.data[cpu.pc + 3]; // fourth byte is the last source register
 
-	cpu.pc++; // increments pc
+	// move program counter by 4 to get the next instruction bc they are now 4 bytes each
+	cpu.pc += 4;
 
-	return decode(byte);
+	// pass all four bytes to decode
+	return decode(op, dest, src1, src2);
 }
 
 // decode - turns byte of memory into readable instruction struct
-Instruction decode(unsigned char byte) {
+Instruction decode(unsigned char op, unsigned char dest, unsigned char src1, unsigned char src2) {
 	Instruction instr; // creates an empty instruction
 
-	switch (byte) {
+	instr.dest = (int)dest; // sets dest reg as dest register
+	instr.src1 = (int)src1; // sets src1 to int of src1
+	instr.src2 = (int)src2; // sets src2 to int of src2
+	instr.imm = (int)src2; // if there is an immediate being used it would be the last byte of the instruction
+
+	switch (op) {
 		// checks raw byte and assigns the matching opcode
 		case 0: instr.op = Opcode::ADD; break;
 		case 1: instr.op = Opcode::SUB; break;
@@ -22,8 +31,9 @@ Instruction decode(unsigned char byte) {
 		case 4: instr.op = Opcode::JMP; break;
 		case 5: instr.op = Opcode::BEQ; break;
 		case 6: instr.op = Opcode::HALT; break;
-		default: instr.op = Opcode::HALT;
+		default: instr.op = Opcode::HALT; break;
 	}
+
 	return instr;
 }
 

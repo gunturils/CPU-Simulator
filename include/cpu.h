@@ -48,7 +48,7 @@ struct CPU {
 
 Instruction fetch(CPU& cpu); // reads the next instruction in memory and increments pc
 
-Instruction decode(unsigned char byte); // turns the input byte into an instruction struct
+Instruction decode(unsigned char op, unsigned char dest, unsigned char src1, unsigned char src2); // turns the input byte into an instruction struct
 
 void execute(CPU& cpu, Instruction instr); // carries out the instruction
 
