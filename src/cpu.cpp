@@ -49,7 +49,7 @@ void execute(CPU&  cpu, Instruction instr) {
 			cpu.rf.registers[instr.src1] - cpu.rf.registers[instr.src2];
 			break;
 		case Opcode::LOAD:
-			cpu.rf.registers[instr.dest] = instr.imm;
+			cpu.rf.registers[instr.dest] = cpu.mem.data[instr.imm];
 			break;
 		case Opcode::STORE:
 			cpu.mem.data[instr.imm] = cpu.rf.registers[instr.src1];
