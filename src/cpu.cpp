@@ -56,13 +56,13 @@ void execute(CPU&  cpu, Instruction instr) {
 			cpu.rf.registers[instr.dest] = instr.imm;
 			break;
 		case Opcode::STORE:
-			cpu.mem.data[instr.imm] = cpu.rf.registers[instr.src1];
+			cpu.mem.data[instr.imm] = cpu.rf.registers[instr.dest];
 			break;
 		case Opcode::JMP:
 			cpu.pc = instr.imm;
 			break;
 		case Opcode::BEQ:
-			if (cpu.rf.registers[instr.src1] == cpu.rf.registers[instr.src2]) {
+			if (cpu.rf.registers[instr.dest] == cpu.rf.registers[instr.src1]) {
 				cpu.pc = instr.imm;
 			}
 			break;
@@ -101,7 +101,7 @@ void printInstr(Instruction instr) {
 			break;
                 case Opcode::STORE:
                         std::cout << "STORE R" << instr.src1
-                                << ", " << instr.imm << std::endl;
+                                << ", [" << instr.imm << "]" << std::endl;
                         break;
                 case Opcode::JMP:
                         std::cout << "JMP " << instr.imm << std::endl;
