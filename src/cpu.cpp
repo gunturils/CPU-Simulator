@@ -27,10 +27,11 @@ Instruction decode(unsigned char op, unsigned char dest, unsigned char src1, uns
 		case 0: instr.op = Opcode::ADD; break;
 		case 1: instr.op = Opcode::SUB; break;
 		case 2: instr.op = Opcode::LOAD; break;
-		case 3: instr.op = Opcode::STORE; break;
-		case 4: instr.op = Opcode::JMP; break;
-		case 5: instr.op = Opcode::BEQ; break;
-		case 6: instr.op = Opcode::HALT; break;
+		case 3: instr.op = Opcode::LOADI; break;
+		case 4: instr.op = Opcode::STORE; break;
+		case 5: instr.op = Opcode::JMP; break;
+		case 6: instr.op = Opcode::BEQ; break;
+		case 7: instr.op = Opcode::HALT; break;
 		default: instr.op = Opcode::HALT; break;
 	}
 
@@ -50,6 +51,9 @@ void execute(CPU&  cpu, Instruction instr) {
 			break;
 		case Opcode::LOAD:
 			cpu.rf.registers[instr.dest] = cpu.mem.data[instr.imm];
+			break;
+		case Opcode::LOADI:
+			cpu.rf.registers[instr.dest] = instr.imm;
 			break;
 		case Opcode::STORE:
 			cpu.mem.data[instr.imm] = cpu.rf.registers[instr.src1];
@@ -90,8 +94,11 @@ void printInstr(Instruction instr) {
                         break;
                 case Opcode::LOAD:
                         std::cout << "LOAD R" << instr.dest
-                                << ", " << instr.imm << std::endl;
+                                << ", [" << instr.imm << "]" << std::endl;
                         break;
+		case Opcode::LOADI:
+			std::cout << "LOADI R" << instr.dest << ", " << instr.imm << std::endl;
+			break;
                 case Opcode::STORE:
                         std::cout << "STORE R" << instr.src1
                                 << ", " << instr.imm << std::endl;

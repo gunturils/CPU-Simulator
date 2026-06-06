@@ -11,6 +11,7 @@ enum class Opcode {
 	ADD,
 	SUB,
 	LOAD,
+	LOADI,
 	STORE,
 	JMP,
 	BEQ,
