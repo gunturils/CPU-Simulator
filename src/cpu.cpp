@@ -26,12 +26,13 @@ Instruction decode(unsigned char op, unsigned char dest, unsigned char src1, uns
 		// checks raw byte and assigns the matching opcode
 		case 0: instr.op = Opcode::ADD; break;
 		case 1: instr.op = Opcode::SUB; break;
-		case 2: instr.op = Opcode::LOAD; break;
-		case 3: instr.op = Opcode::LOADI; break;
-		case 4: instr.op = Opcode::STORE; break;
-		case 5: instr.op = Opcode::JMP; break;
-		case 6: instr.op = Opcode::BEQ; break;
-		case 7: instr.op = Opcode::HALT; break;
+		case 2: instr.op = Opcode::MUL; break;
+		case 3: instr.op = Opcode::LOAD; break;
+		case 4: instr.op = Opcode::LOADI; break;
+		case 5: instr.op = Opcode::STORE; break;
+		case 6: instr.op = Opcode::JMP; break;
+		case 7: instr.op = Opcode::BEQ; break;
+		case 8: instr.op = Opcode::HALT; break;
 		default: instr.op = Opcode::HALT; break;
 	}
 
@@ -46,8 +47,12 @@ void execute(CPU&  cpu, Instruction instr) {
 			cpu.rf.registers[instr.src1] + cpu.rf.registers[instr.src2];
 			break;
 		case Opcode::SUB:
-			cpu.rf.registers[instr.dest] = 
+			cpu.rf.registers[instr.dest] =
 			cpu.rf.registers[instr.src1] - cpu.rf.registers[instr.src2];
+			break;
+		case Opcode::MUL:
+			cpu.rf.registers[instr.dest] =
+			cpu.rf.registers[instr.src1] * cpu.rf.registers[instr.src2];
 			break;
 		case Opcode::LOAD:
 			cpu.rf.registers[instr.dest] = cpu.mem.data[instr.imm];
@@ -92,6 +97,11 @@ void printInstr(Instruction instr) {
                                 << ", R" << instr.src1
                                 << ", R" << instr.src2 << std::endl;
                         break;
+		case Opcode::MUL:
+			std::cout << "MUL R" << instr.dest
+				<< ", R" << instr.src1
+				<< ", R" << instr.src2 << std::endl;
+			break;
                 case Opcode::LOAD:
                         std::cout << "LOAD R" << instr.dest
                                 << ", [" << instr.imm << "]" << std::endl;

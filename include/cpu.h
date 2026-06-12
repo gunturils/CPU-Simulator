@@ -10,6 +10,7 @@
 enum class Opcode {
 	ADD,
 	SUB,
+	MUL,
 	LOAD,
 	LOADI,
 	STORE,
