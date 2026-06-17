@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #F0DDD6;
+            color: #3a3a3a;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #F0DDD6;
+            padding: 16px 24px;
+            border-bottom: 1px solid #d4b8b0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header h1 {
+            font-size: 20px;
+            color: #3a3a3a;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        header span {
+            font-size: 12px;
+            color: #8a7a76;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            flex: 1;
+            overflow: hidden;
+            padding: 16px;
+        }
+
+        /* LEFT PANEL */
+        .editor-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        .panel-label {
+            font-size: 11px;
+            color: #8a7a76;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .editor-container {
+            flex: 1;
+            position: relative;
+            background: #F0EEEA;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* line numbers */
+        #lineNumbers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 36px;
+            height: 100%;
+            padding: 14px 6px;
+            background: #e8e4e0;
+            color: #a09890;
+            font-size: 13px;
+            line-height: 1.7;
+            text-align: right;
+            user-select: none;
+            border-right: 1px solid #d4cdc8;
+            overflow: hidden;
+            white-space: pre;
+            z-index: 2;
+        }
+
+        /* highlight overlay sits behind textarea */
+        #highlightOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 14px 12px 14px 48px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            pointer-events: none;
+            color: transparent;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .highlight-line {
+            background: rgba(151, 179, 174, 0.35);
+            display: block;
+            border-radius: 2px;
+        }
+
+        /* textarea sits on top */
+        #editor {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            color: #3a3a3a;
+            border: none;
+            outline: none;
+            padding: 14px 12px 14px 48px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            resize: none;
+            caret-color: #3a3a3a;
+            z-index: 1;
+        }
+
+        .button-bar {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            cursor: pointer;
+            background: #97B3AE;
+            color: #F0EEEA;
+            transition: opacity 0.15s;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover { opacity: 0.85; }
+
+        #resetBtn {
+            background: #c4a09a;
+        }
+
+        .output-box {
+            background: #F0EEEA;
+            border-radius: 6px;
+            padding: 14px;
+            font-size: 13px;
+            color: #5a5a5a;
+            height: 130px;
+            overflow-y: auto;
+            line-height: 1.6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .log-entry   { color: #5a5a5a; }
+        .log-error   { color: #b85c5c; }
+        .log-success { color: #5a8a72; }
+
+        /* RIGHT PANEL */
+        .state-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .section {
+            background: #F0EEEA;
+            border-radius: 6px;
+            padding: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .section h3 {
+            font-size: 11px;
+            color: #8a7a76;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .register-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .register-box {
+            background: #F0DDD6;
+            border: 1px solid #d4b8b0;
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .register-box.changed {
+            border-color: #97B3AE;
+            background: #e8f0ef;
+        }
+
+        .register-box .reg-name {
+            font-size: 10px;
+            color: #8a7a76;
+            margin-bottom: 4px;
+        }
+
+        .register-box .reg-value {
+            font-size: 15px;
+            color: #3a3a3a;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .stat-box {
+            background: #F0DDD6;
+            border: 1px solid #d4b8b0;
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .stat-box .stat-name {
+            font-size: 10px;
+            color: #8a7a76;
+            margin-bottom: 4px;
+        }
+
+        .stat-box .stat-value {
+            font-size: 15px;
+            color: #3a3a3a;
+            font-weight: bold;
+        }
+
+        .current-instr {
+            background: #F0DDD6;
+            border: 1px solid #97B3AE;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 14px;
+            color: #3a7a6a;
+            min-height: 36px;
+        }
+
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            max-height: 130px;
+            overflow-y: auto;
+        }
+
+        .memory-cell {
+            background: #F0DDD6;
+            border: 1px solid #d4b8b0;
+            border-radius: 3px;
+            padding: 4px 8px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .memory-cell .mem-addr { color: #8a7a76; }
+        .memory-cell .mem-val  { color: #3a3a3a; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>⚙ CPU Simulator</h1>
+    <span>Custom ISA · 8 Registers · 256 Bytes RAM</span>
+</header>
+
+<div class="container">
+
+    <!-- LEFT PANEL -->
+    <div class="editor-panel">
+        <div class="panel-label">Assembly Editor</div>
+
+        <div class="editor-container">
+            <div id="lineNumbers"></div>
+            <div id="highlightOverlay"></div>
+            <textarea id="editor" spellcheck="false"># factorial of 5
+# R0 = counter, R1 = product
+# R2 = decrement, R3 = stop
+
+LOADI R0, 5
+LOADI R1, 1
+LOADI R2, 1
+LOADI R3, 0
+MUL R1, R1, R0
+SUB R0, R0, R2
+BEQ R0, R3, 32
+JMP 16
+STORE R1, 200
+HALT</textarea>
+        </div>
+
+        <div class="button-bar">
+            <button onclick="runProgram()">▶ Run</button>
+            <button onclick="stepProgram()">⏭ Step</button>
+            <button id="resetBtn" onclick="resetSimulator()">↺ Reset</button>
+        </div>
+
+        <div class="panel-label">Output</div>
+        <div class="output-box" id="log"></div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="state-panel">
+
+        <div class="section">
+            <h3>Registers</h3>
+            <div class="register-grid" id="registerGrid"></div>
+        </div>
+
+        <div class="section">
+            <h3>Current Instruction</h3>
+            <div class="current-instr" id="currentInstr">—</div>
+        </div>
+
+        <div class="section">
+            <h3>Stats</h3>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-name">Program Counter</div>
+                    <div class="stat-value" id="pcDisplay">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-name">Instructions Run</div>
+                    <div class="stat-value" id="instrCount">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Memory (non-zero values)</h3>
+            <div class="memory-grid" id="memoryGrid"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ============================================================
+// CPU SIMULATOR
+// ============================================================
+
+const OP = {
+    ADD:0, SUB:1, MUL:2, LOAD:3, LOADI:4,
+    LOADR:5, STORE:6, JMP:7, BEQ:8, HALT:9
+};
+const OP_NAMES = Object.fromEntries(Object.entries(OP).map(([k,v])=>[v,k]));
+
+let cpu = {
+    registers: new Array(8).fill(0),
+    memory: new Uint8Array(256),
+    pc: 0,
+    halted: false,
+    instrCount: 0
+};
+
+let prevRegisters = new Array(8).fill(0);
+let instrToLine = [];
+
+// ============================================================
+// ASSEMBLER
+// ============================================================
+
+function assemble(source) {
+    cpu.memory.fill(0);
+    instrToLine = [];
+
+    const lines = source.split('\n');
+    let address = 0;
+
+    for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+        let line = lines[lineIdx].replace(/#.*/,'').trim();
+        if (!line) continue;
+
+        const parts = line.split(/[\s,]+/).filter(Boolean);
+        const op = parts[0].toUpperCase();
+
+        if (!OP.hasOwnProperty(op)) {
+            logMessage(`Unknown instruction: ${op}`, 'error');
+            return false;
+        }
+
+        const opcode = OP[op];
+        const getReg = s => parseInt(s.replace(/[Rr]/,''));
+        const getImm = s => parseInt(s);
+
+        instrToLine.push(lineIdx);
+
+        if (op === 'HALT') {
+            cpu.memory[address++] = opcode;
+            cpu.memory[address++] = 0;
+            cpu.memory[address++] = 0;
+            cpu.memory[address++] = 0;
+        } else if (['ADD','SUB','MUL'].includes(op)) {
+            cpu.memory[address++] = opcode;
+            cpu.memory[address++] = getReg(parts[1]);
+            cpu.memory[address++] = getReg(parts[2]);
+            cpu.memory[address++] = getReg(parts[3]);
+        } else if (op === 'LOADI' || op === 'LOAD') {
+            cpu.memory[address++] = opcode;
+            cpu.memory[address++] = getReg(parts[1]);
+            cpu.memory[address++] = 0;
+            cpu.memory[address++] = getImm(parts[2]);
+        } else if (op === 'LOADR') {
+            cpu.memory[address++] = opcode;
+            cpu.memory[address++] = getReg(parts[1]);
+            cpu.memory[address++] = getReg(parts[2]);
+            cpu.memory[address++] = 0;
+        } else if (op === 'STORE') {
+            cpu.memory[address++] = opcode;
+            cpu.memory[address++] = getReg(parts[1]);
+            cpu.memory[address++] = 0;
+            cpu.memory[address++] = getImm(parts[2]);
+        } else if (op === 'JMP') {
+            cpu.memory[address++] = opcode;
+            cpu.memory[address++] = 0;
+            cpu.memory[address++] = 0;
+            cpu.memory[address++] = getImm(parts[1]);
+        } else if (op === 'BEQ') {
+            cpu.memory[address++] = opcode;
+            cpu.memory[address++] = getReg(parts[1]);
+            cpu.memory[address++] = getReg(parts[2]);
+            cpu.memory[address++] = getImm(parts[3]);
+        }
+    }
+    return true;
+}
+
+// ============================================================
+// FETCH / DECODE / EXECUTE
+// ============================================================
+
+function fetchInstr() {
+    const opcode = cpu.memory[cpu.pc];
+    const b1 = cpu.memory[cpu.pc + 1];
+    const b2 = cpu.memory[cpu.pc + 2];
+    const b3 = cpu.memory[cpu.pc + 3];
+    cpu.pc += 4;
+    return { opcode, destReg: b1, srcReg1: b2, srcReg2: b3, immediate: b3 };
+}
+
+function execute(instr) {
+    const r = cpu.registers;
+    switch (instr.opcode) {
+        case OP.ADD:   r[instr.destReg] = r[instr.srcReg1] + r[instr.srcReg2]; break;
+        case OP.SUB:   r[instr.destReg] = r[instr.srcReg1] - r[instr.srcReg2]; break;
+        case OP.MUL:   r[instr.destReg] = r[instr.srcReg1] * r[instr.srcReg2]; break;
+        case OP.LOAD:  r[instr.destReg] = cpu.memory[instr.immediate]; break;
+        case OP.LOADI: r[instr.destReg] = instr.immediate; break;
+        case OP.LOADR: r[instr.destReg] = cpu.memory[r[instr.srcReg1]]; break;
+        case OP.STORE: cpu.memory[instr.immediate] = r[instr.srcReg1]; break;
+        case OP.JMP:   cpu.pc = instr.immediate; break;
+        case OP.BEQ:
+            if (r[instr.srcReg1] === r[instr.srcReg2]) cpu.pc = instr.immediate;
+            break;
+        case OP.HALT:  cpu.halted = true; break;
+    }
+}
+
+function instrToString(instr) {
+    const name = OP_NAMES[instr.opcode] || 'UNKNOWN';
+    switch (instr.opcode) {
+        case OP.ADD: case OP.SUB: case OP.MUL:
+            return `${name} R${instr.destReg}, R${instr.srcReg1}, R${instr.srcReg2}`;
+        case OP.LOAD:
+            return `${name} R${instr.destReg}, [${instr.immediate}]`;
+        case OP.LOADI:
+            return `${name} R${instr.destReg}, ${instr.immediate}`;
+        case OP.LOADR:
+            return `${name} R${instr.destReg}, [R${instr.srcReg1}]`;
+        case OP.STORE:
+            return `${name} R${instr.srcReg1}, [${instr.immediate}]`;
+        case OP.JMP:
+            return `${name} ${instr.immediate}`;
+        case OP.BEQ:
+            return `${name} R${instr.srcReg1}, R${instr.srcReg2}, ${instr.immediate}`;
+        case OP.HALT:
+            return 'HALT';
+        default:
+            return 'UNKNOWN';
+    }
+}
+
+// ============================================================
+// LINE NUMBERS
+// ============================================================
+
+function updateLineNumbers() {
+    const lines = document.getElementById('editor').value.split('\n');
+    document.getElementById('lineNumbers').textContent =
+        lines.map((_, i) => i + 1).join('\n');
+}
+
+// ============================================================
+// LINE HIGHLIGHTING
+// ============================================================
+
+function highlightLine(lineIndex) {
+    const source = document.getElementById('editor').value;
+    const lines = source.split('\n');
+    const overlay = document.getElementById('highlightOverlay');
+
+    let html = '';
+    for (let i = 0; i < lines.length; i++) {
+        const text = lines[i]
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;') || ' ';
+        if (i === lineIndex) {
+            html += `<span class="highlight-line">${text}</span>\n`;
+        } else {
+            html += `<span>${text}</span>\n`;
+        }
+    }
+    overlay.innerHTML = html;
+}
+
+function clearHighlight() {
+    document.getElementById('highlightOverlay').innerHTML = '';
+}
+
+// sync scrolling across all three layers
+document.getElementById('editor').addEventListener('scroll', function () {
+    document.getElementById('highlightOverlay').scrollTop = this.scrollTop;
+    document.getElementById('lineNumbers').scrollTop = this.scrollTop;
+});
+
+// update line numbers when content changes
+document.getElementById('editor').addEventListener('input', updateLineNumbers);
+
+// ============================================================
+// UI UPDATE
+// ============================================================
+
+function updateUI(lastInstr, currentLine) {
+    const grid = document.getElementById('registerGrid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+        const changed = cpu.registers[i] !== prevRegisters[i];
+        grid.innerHTML += `
+            <div class="register-box ${changed ? 'changed' : ''}">
+                <div class="reg-name">R${i}</div>
+                <div class="reg-value">${cpu.registers[i]}</div>
+            </div>`;
+    }
+
+    document.getElementById('pcDisplay').textContent = cpu.pc;
+    document.getElementById('instrCount').textContent = cpu.instrCount;
+    document.getElementById('currentInstr').textContent =
+        lastInstr ? instrToString(lastInstr) : '—';
+
+    if (currentLine !== undefined && currentLine >= 0) {
+        highlightLine(currentLine);
+    }
+
+    const memGrid = document.getElementById('memoryGrid');
+    memGrid.innerHTML = '';
+    for (let i = 0; i < 256; i++) {
+        if (cpu.memory[i] !== 0) {
+            memGrid.innerHTML += `
+                <div class="memory-cell">
+                    <span class="mem-addr">[${i}]</span>
+                    <span class="mem-val">${cpu.memory[i]}</span>
+                </div>`;
+        }
+    }
+}
+
+function logMessage(msg, type = 'entry') {
+    const log = document.getElementById('log');
+    log.innerHTML += `<div class="log-${type}">${msg}</div>`;
+    log.scrollTop = log.scrollHeight;
+}
+
+// ============================================================
+// CONTROLS
+// ============================================================
+
+function resetSimulator() {
+    cpu.registers.fill(0);
+    cpu.memory.fill(0);
+    cpu.pc = 0;
+    cpu.halted = false;
+    cpu.instrCount = 0;
+    prevRegisters.fill(0);
+    instrToLine = [];
+    document.getElementById('currentInstr').textContent = '—';
+    document.getElementById('log').innerHTML = '';
+    clearHighlight();
+    updateUI(null);
+    logMessage('Simulator reset.', 'entry');
+}
+
+function loadAndAssemble() {
+    resetSimulator();
+    return assemble(document.getElementById('editor').value);
+}
+
+function runProgram() {
+    if (!loadAndAssemble()) return;
+    logMessage('Running...', 'entry');
+    let lastInstr = null;
+    let lastLine = -1;
+    const MAX = 10000;
+
+    while (!cpu.halted && cpu.instrCount < MAX) {
+        prevRegisters = [...cpu.registers];
+        const instrIndex = cpu.pc / 4;
+        lastLine = instrToLine[instrIndex] ?? -1;
+        lastInstr = fetchInstr();
+        execute(lastInstr);
+        cpu.instrCount++;
+        logMessage(instrToString(lastInstr));
+    }
+
+    if (cpu.instrCount >= MAX) {
+        logMessage('Max instructions reached — possible infinite loop', 'error');
+    } else {
+        logMessage(`Done. ${cpu.instrCount} instructions executed.`, 'success');
+    }
+
+    updateUI(lastInstr, lastLine);
+}
+
+function stepProgram() {
+    if (cpu.halted) {
+        logMessage('Halted. Reset to run again.', 'error');
+        return;
+    }
+
+    if (cpu.pc === 0 && cpu.instrCount === 0) {
+        if (!loadAndAssemble()) return;
+        logMessage('Loaded. Stepping...', 'entry');
+    }
+
+    prevRegisters = [...cpu.registers];
+    const instrIndex = cpu.pc / 4;
+    const currentLine = instrToLine[instrIndex] ?? -1;
+
+    const instr = fetchInstr();
+    execute(instr);
+    cpu.instrCount++;
+
+    logMessage(instrToString(instr));
+    updateUI(instr, currentLine);
+
+    if (cpu.halted) {
+        logMessage(`Done. ${cpu.instrCount} instructions executed.`, 'success');
+    }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+
+updateLineNumbers();
+updateUI(null);
+logMessage('Ready. Click Run or Step to start.', 'entry');
+</script>
+
+</body>
+</html>
