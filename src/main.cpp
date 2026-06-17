@@ -1,88 +1,164 @@
 #include "../include/cpu.h"
+#include <fstream>
+// fstream lets us read files
+#include <sstream>
+// sstream lets us parse strings
+#include <string>
+// string lets us work with text
 
-int main() {
-	CPU cpu; // initializes a cpu instance
+// opcode lookup — maps instruction name to numeric opcode
+// must match exactly what decode() expects
+int getOpcode(const std::string& op) {
+    if (op == "ADD")   return 0;
+    if (op == "SUB")   return 1;
+    if (op == "MUL")   return 2;
+    if (op == "LOAD")  return 3;
+    if (op == "LOADI") return 4;
+    if (op == "STORE") return 5;
+    if (op == "JMP")   return 6;
+    if (op == "BEQ")   return 7;
+    if (op == "HALT")  return 8;
+    return 8;
+    // default to HALT if unknown
+}
 
-	//cpu.mem.data[200] = 42;
-	// cpu.mem.data[200] = 10;
-	// cpu.mem.data[201] = 20;
+// register lookup — maps "R0" to 0, "R1" to 1, etc.
+int getReg(const std::string& reg) {
+    // remove commas that might be attached
+    std::string r = reg;
+    if (!r.empty() && r.back() == ',') r.pop_back();
+    // pop_back removes the last character
+    return std::stoi(r.substr(1));
+    // substr(1) removes the "R" prefix
+    // stoi converts the remaining number string to int
+}
 
-	cpu.mem.data[0] = 4; // LOADI R0, #1
-	cpu.mem.data[1] = 0;
-	cpu.mem.data[2] = 0;
-	cpu.mem.data[3] = 5;
+// loads an assembly file directly into CPU memory
+void loadProgram(CPU& cpu, const std::string& filename) {
+    std::ifstream file(filename);
+    // opens the file for reading
+    if (!file.is_open()) {
+        std::cout << "Error: could not open file " << filename << std::endl;
+        return;
+    }
 
-	cpu.mem.data[4] = 4; // LOADI R1, #6
-        cpu.mem.data[5] = 1;
-        cpu.mem.data[6] = 0;
-        cpu.mem.data[7] = 1;
+    std::string line;
+    // holds each line as we read it
+    int address = 0;
+    // tracks current memory address
 
-	cpu.mem.data[8] = 4; // LOADI R2, #1
-        cpu.mem.data[9] = 2;
-        cpu.mem.data[10] = 0;
-        cpu.mem.data[11] = 1;
+    while (std::getline(file, line)) {
+        // getline reads one line at a time
 
-	cpu.mem.data[12] = 4; // STR R0, [200]
-	cpu.mem.data[13] = 3;
-	cpu.mem.data[14] = 0;
-	cpu.mem.data[15] = 0;
+        // skip empty lines and comments
+        if (line.empty() || line[0] == '#') continue;
 
-	cpu.mem.data[16] = 2; // ADD R0, R0, R2
-	cpu.mem.data[17] = 1;
-	cpu.mem.data[18] = 1;
-	cpu.mem.data[19] = 0;
+        // remove inline comments
+        size_t commentPos = line.find('#');
+        if (commentPos != std::string::npos) {
+            line = line.substr(0, commentPos);
+            // cut off everything after #
+        }
 
-	cpu.mem.data[20] = 1; // BEQ R0, R1, 32
-	cpu.mem.data[21] = 0;
-	cpu.mem.data[22] = 0;
-	cpu.mem.data[23] = 2;
+        std::istringstream iss(line);
+        // istringstream lets us parse the line word by word
+        std::string op;
+        iss >> op;
+        // read the first word (the opcode)
 
-	cpu.mem.data[24] = 7; // LOADI R4, #99
-        cpu.mem.data[25] = 0;
-        cpu.mem.data[26] = 3;
-        cpu.mem.data[27] = 32;
+        if (op.empty()) continue;
+        // skip lines that are only whitespace
 
-        cpu.mem.data[28] = 6; // JMP 36 -> jump unconditionally to address 36
-        cpu.mem.data[29] = 0;
-        cpu.mem.data[30] = 0;
-        cpu.mem.data[31] = 16;
+        // convert to uppercase
+        for (auto& c : op) c = toupper(c);
 
-        cpu.mem.data[32] = 5; // LOADI R4, #0
-        cpu.mem.data[33] = 1;
-        cpu.mem.data[34] = 0;
-        cpu.mem.data[35] = 200;
+        int opcode = getOpcode(op);
 
-	cpu.mem.data[36] = 8; //HALT
-	cpu.mem.data[37] = 0;
-	cpu.mem.data[38] = 0;
-	cpu.mem.data[39] = 0;
+        if (op == "HALT") {
+            cpu.mem.data[address++] = opcode;
+            cpu.mem.data[address++] = 0;
+            cpu.mem.data[address++] = 0;
+            cpu.mem.data[address++] = 0;
+            // HALT has no arguments
 
-	std::cout << "--- Program: Factorial of 5 ---" << std::endl;
+        } else if (op == "ADD" || op == "SUB" || op == "MUL") {
+            std::string dest, src1, src2;
+            iss >> dest >> src1 >> src2;
+            cpu.mem.data[address++] = opcode;
+            cpu.mem.data[address++] = getReg(dest);
+            cpu.mem.data[address++] = getReg(src1);
+            cpu.mem.data[address++] = getReg(src2);
 
-	int instrCount = 0;
+        } else if (op == "LOADI" || op == "LOAD") {
+            std::string dest, imm;
+            iss >> dest >> imm;
+            cpu.mem.data[address++] = opcode;
+            cpu.mem.data[address++] = getReg(dest);
+            cpu.mem.data[address++] = 0;
+            cpu.mem.data[address++] = std::stoi(imm);
 
-	std::cout << "--- Program ---" << std::endl;
+        } else if (op == "STORE") {
+            std::string src1, imm;
+            iss >> src1 >> imm;
+            cpu.mem.data[address++] = opcode;
+            cpu.mem.data[address++] = getReg(src1);
+            cpu.mem.data[address++] = 0;
+            cpu.mem.data[address++] = std::stoi(imm);
 
-	while (!cpu.halted) {
-		Instruction instr = fetch(cpu);
-		printInstr(instr);
-		execute(cpu, instr);
-		instrCount++;
-	}
+        } else if (op == "JMP") {
+            std::string imm;
+            iss >> imm;
+            cpu.mem.data[address++] = opcode;
+            cpu.mem.data[address++] = 0;
+            cpu.mem.data[address++] = 0;
+            cpu.mem.data[address++] = std::stoi(imm);
 
-	std::cout << "--- Registers after execution ---" << std::endl;
-	printReg(cpu);
+        } else if (op == "BEQ") {
+            std::string src1, src2, imm;
+            iss >> src1 >> src2 >> imm;
+            cpu.mem.data[address++] = opcode;
+            cpu.mem.data[address++] = getReg(src1);
+            cpu.mem.data[address++] = getReg(src2);
+            cpu.mem.data[address++] = std::stoi(imm);
+        }
+    }
 
-	std::cout << "--- Result ---" << std::endl;
-	std::cout << "5! = " << (int)cpu.mem.data[200] << std::endl;
+    file.close();
+}
 
-	//std::cout << "--- Memory after execution ---" << std::endl;
-	//std::cout << "mem[200]: " << (int)cpu.mem.data[200] << std::endl;
-	// std::cout << "mem[201]: " << (int)cpu.mem.data[201] << std::endl;
-	// std::cout << "mem[202]: " << (int)cpu.mem.data[202] << std::endl;
+int main(int argc, char* argv[]) {
+    // argc is the number of command line arguments
+    // argv is the array of argument strings
+    // argv[0] is always the program name
+    // argv[1] is the first argument (our .asm file)
 
-	std::cout << "--- Performance ---" << std::endl;
-	std::cout << "Total instructions executed: " << instrCount << std::endl;
+    if (argc < 2) {
+        std::cout << "Usage: ./simulator <program.asm>" << std::endl;
+        return 1;
+    }
 
-	return 0;
+    CPU cpu;
+    // create CPU
+
+    loadProgram(cpu, argv[1]);
+    // load the assembly file directly into memory
+
+    std::cout << "--- Running: " << argv[1] << " ---" << std::endl;
+
+    int instructionCount = 0;
+
+    while (!cpu.halted) {
+        Instruction instr = fetch(cpu);
+        printInstr(instr);
+        execute(cpu, instr);
+        instructionCount++;
+    }
+
+    std::cout << "--- Registers after execution ---" << std::endl;
+    printReg(cpu);
+
+    std::cout << "--- Performance ---" << std::endl;
+    std::cout << "Total instructions executed: " << instructionCount << std::endl;
+
+    return 0;
 }
