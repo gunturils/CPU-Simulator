@@ -147,6 +147,3 @@ HALT
 - **Python** — assembler
 - **HTML / CSS / JavaScript** — interactive UI
 
----
-
-*Built as part of a self-directed computer architecture study plan — May/June 2026*
