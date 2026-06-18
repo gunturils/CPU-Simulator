@@ -141,7 +141,16 @@ int main(int argc, char* argv[]) {
     // create CPU
 
     loadProgram(cpu, argv[1]);
-    // load the assembly file directly into memory
+    // load the assembly program into memory
+
+// pre-load array data into high memory
+// programs can use these values at addresses 200-204
+cpu.mem.data[200] = 10;
+cpu.mem.data[201] = 20;
+cpu.mem.data[202] = 30;
+cpu.mem.data[203] = 40;
+cpu.mem.data[204] = 50;
+// array [10, 20, 30, 40, 50] always available at addresses 200-204
 
     std::cout << "--- Running: " << argv[1] << " ---" << std::endl;
 
@@ -159,6 +168,11 @@ int main(int argc, char* argv[]) {
 
     std::cout << "--- Performance ---" << std::endl;
     std::cout << "Total instructions executed: " << instructionCount << std::endl;
+
+    printCacheStats(cpu);
+
+    printCacheContents(cpu);
+
 
     return 0;
 }

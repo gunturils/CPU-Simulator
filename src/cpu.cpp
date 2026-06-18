@@ -55,13 +55,13 @@ void execute(CPU&  cpu, Instruction instr) {
 			cpu.rf.registers[instr.src1] * cpu.rf.registers[instr.src2];
 			break;
 		case Opcode::LOAD:
-			cpu.rf.registers[instr.dest] = cpu.mem.data[instr.imm];
+			cpu.rf.registers[instr.dest] = cacheRead(cpu, instr.imm);
 			break;
 		case Opcode::LOADI:
 			cpu.rf.registers[instr.dest] = instr.imm;
 			break;
 		case Opcode::STORE:
-			cpu.mem.data[instr.imm] = cpu.rf.registers[instr.dest];
+			cacheWrite(cpu, instr.imm, cpu.rf.registers[instr.src1]);
 			break;
 		case Opcode::JMP:
 			cpu.pc = instr.imm;

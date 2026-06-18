@@ -4,7 +4,7 @@ CXX = g++
 #CXXFLAGS are flags passed to the compiler every time it runs
 CXXFLAGS = -I./include -Wall -Wextra
 
-SRCS = src/main.cpp src/cpu.cpp
+SRCS = src/main.cpp src/cpu.cpp src/cache.cpp
 
 TARGET = simulator
 
